@@ -245,6 +245,12 @@ module Docx
     def update
       replace_entry 'word/document.xml', doc.serialize(save_with: 0)
       replace_entry 'word/styles.xml', styles_configuration.serialize(save_with: 0)
+      headers.each do |name, content|
+        replace_entry "word/#{name}.xml", content.serialize(save_with: 0)
+      end
+      footers.each do |name, content|
+        replace_entry "word/#{name}.xml", content.serialize(save_with: 0)
+      end
     end
 
     # generate Elements::Containers::Paragraph from paragraph XML node

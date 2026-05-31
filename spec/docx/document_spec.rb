@@ -84,6 +84,27 @@ describe Docx::Document do
     end
   end
 
+  describe 'updating headers and footers' do
+    before do
+      @doc = Docx::Document.open(@fixtures_path + '/multi_doc.docx')
+      @new_doc_path = @fixtures_path + '/multi_doc_saved.docx'
+    end
+
+    after do
+      File.delete(@new_doc_path) if File.exist?(@new_doc_path)
+    end
+
+    it 'persists changes to headers and footers after save' do
+      @doc.headers['header1'].at_xpath('//w:t').content = 'Edited header.'
+      @doc.footers['footer1'].at_xpath('//w:t').content = 'Edited footer.'
+      @doc.save(@new_doc_path)
+
+      reopened = Docx::Document.open(@new_doc_path)
+      expect(reopened.headers['header1'].text).to eq 'Edited header.'
+      expect(reopened.footers['footer1'].text).to eq 'Edited footer.'
+    end
+  end
+
   describe 'read tables' do
     before do
       @doc = Docx::Document.open(@fixtures_path + '/tables.docx')
