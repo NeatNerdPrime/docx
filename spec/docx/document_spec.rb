@@ -376,6 +376,31 @@ describe Docx::Document do
 
       after { File.delete(@new_doc_path) if File.exist?(@new_doc_path) }
     end
+
+    context 'ZIP64 global configuration' do
+      before { @doc = Docx::Document.open(@fixtures_path + '/basic.docx') }
+
+      around do |example|
+        previous = Zip.write_zip64_support
+        example.run
+        Zip.write_zip64_support = previous
+      end
+
+      it 'does not leak the disabled ZIP64 setting after saving' do
+        Zip.write_zip64_support = true
+        @new_doc_path = @fixtures_path + '/new_save.docx'
+        @doc.save(@new_doc_path)
+        expect(Zip.write_zip64_support).to eq(true)
+      end
+
+      it 'does not leak the disabled ZIP64 setting after streaming' do
+        Zip.write_zip64_support = true
+        @doc.stream
+        expect(Zip.write_zip64_support).to eq(true)
+      end
+
+      after { File.delete(@new_doc_path) if @new_doc_path && File.exist?(@new_doc_path) }
+    end
   end
 
   describe 'streaming' do

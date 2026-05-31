@@ -5,11 +5,6 @@ require 'docx/helpers'
 require 'nokogiri'
 require 'zip'
 
-# Disable ZIP64 support to maintain compatibility with the previous default behavior
-# (before rubyzip 3.x) and ensure compatibility with all readers. Rubyzip 3.x enables
-# ZIP64 by default, but many readers (including pandoc) don't support it for small files.
-Zip.write_zip64_support = false
-
 module Docx
   # The Document class wraps around a docx file and provides methods to
   # interface with it.
@@ -133,40 +128,44 @@ module Docx
     # call-seq:
     #   save(filepath) => void
     def save(path)
-      update
-      Zip::OutputStream.open(path) do |out|
-        zip.each do |entry|
-          next unless entry.file?
+      with_zip64_disabled do
+        update
+        Zip::OutputStream.open(path) do |out|
+          zip.each do |entry|
+            next unless entry.file?
 
-          out.put_next_entry(entry.name)
-          value = @replace[entry.name] || zip.read(entry.name)
+            out.put_next_entry(entry.name)
+            value = @replace[entry.name] || zip.read(entry.name)
 
-          out.write(value)
+            out.write(value)
+          end
+
         end
-
+        zip.close
       end
-      zip.close
     end
 
     # Output entire document as a StringIO object
     def stream
-      update
-      stream = Zip::OutputStream.write_buffer do |out|
-        zip.each do |entry|
-          next unless entry.file?
+      with_zip64_disabled do
+        update
+        stream = Zip::OutputStream.write_buffer do |out|
+          zip.each do |entry|
+            next unless entry.file?
 
-          out.put_next_entry(entry.name)
+            out.put_next_entry(entry.name)
 
-          if @replace[entry.name]
-            out.write(@replace[entry.name])
-          else
-            out.write(zip.read(entry.name))
+            if @replace[entry.name]
+              out.write(@replace[entry.name])
+            else
+              out.write(zip.read(entry.name))
+            end
           end
         end
-      end
 
-      stream.rewind
-      stream
+        stream.rewind
+        stream
+      end
     end
 
     alias text to_s
@@ -188,6 +187,18 @@ module Docx
     end
 
     private
+
+    # rubyzip 3.x enables ZIP64 by default, which breaks readers (e.g. pandoc)
+    # that don't support it for small files (issue #168). Disable ZIP64 only
+    # while writing, and restore the previous global value afterwards so we
+    # don't affect other rubyzip users in the consuming application.
+    def with_zip64_disabled
+      previous = Zip.write_zip64_support
+      Zip.write_zip64_support = false
+      yield
+    ensure
+      Zip.write_zip64_support = previous
+    end
 
     def load_styles
       @styles_xml = @zip.read('word/styles.xml')
