@@ -5,6 +5,11 @@ require 'docx/helpers'
 require 'nokogiri'
 require 'zip'
 
+# Disable ZIP64 support to maintain compatibility with the previous default behavior
+# (before rubyzip 3.x) and ensure compatibility with all readers. Rubyzip 3.x enables
+# ZIP64 by default, but many readers (including pandoc) don't support it for small files.
+Zip.write_zip64_support = false
+
 module Docx
   # The Document class wraps around a docx file and provides methods to
   # interface with it.
