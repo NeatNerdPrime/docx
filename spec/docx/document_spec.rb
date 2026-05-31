@@ -105,6 +105,42 @@ describe Docx::Document do
     end
   end
 
+  describe 'bookmarks in headers and footers' do
+    before do
+      @doc = Docx::Document.open(@fixtures_path + '/multi_doc_bookmarks.docx')
+      @new_doc_path = @fixtures_path + '/multi_doc_bookmarks_saved.docx'
+    end
+
+    after do
+      File.delete(@new_doc_path) if File.exist?(@new_doc_path)
+    end
+
+    it 'includes bookmarks found in headers and footers' do
+      expect(@doc.bookmarks['header_bookmark']).to_not be_nil
+      expect(@doc.bookmarks['footer_bookmark']).to_not be_nil
+    end
+
+    it 'allows inserting text at a header bookmark' do
+      @doc.bookmarks['header_bookmark'].insert_text_after('Inserted ')
+      expect(@doc.headers['header1'].text).to eq 'Inserted Hello from the header.'
+    end
+
+    it 'allows inserting text at a footer bookmark' do
+      @doc.bookmarks['footer_bookmark'].insert_text_after('Inserted ')
+      expect(@doc.footers['footer1'].text).to eq 'Inserted Hello from the footer.'
+    end
+
+    it 'persists header and footer bookmark edits after save' do
+      @doc.bookmarks['header_bookmark'].insert_text_after('Inserted ')
+      @doc.bookmarks['footer_bookmark'].insert_text_after('Inserted ')
+      @doc.save(@new_doc_path)
+
+      reopened = Docx::Document.open(@new_doc_path)
+      expect(reopened.headers['header1'].text).to eq 'Inserted Hello from the header.'
+      expect(reopened.footers['footer1'].text).to eq 'Inserted Hello from the footer.'
+    end
+  end
+
   describe 'read tables' do
     before do
       @doc = Docx::Document.open(@fixtures_path + '/tables.docx')
