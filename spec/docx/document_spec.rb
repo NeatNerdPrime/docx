@@ -680,6 +680,34 @@ describe Docx::Document do
     end
   end
 
+  # Regression tests for #127: malformed documents should not crash with
+  # internal "undefined method 'value' for nil" errors.
+  describe 'robustness against malformed documents' do
+    it 'ignores hyperlink relationships missing an Id or Target' do
+      doc = Docx::Document.open(@fixtures_path + '/malformed_hyperlink_rels.docx')
+      expect { doc.hyperlinks }.to_not raise_error
+      # the well-formed relationships are still returned; the malformed one is skipped
+      expect(doc.hyperlinks).to be_a(Hash)
+    end
+
+    it 'returns nil for default_paragraph_style when there is no default paragraph style' do
+      doc = Docx::Document.open(@fixtures_path + '/no_default_paragraph_style.docx')
+      expect { doc.default_paragraph_style }.to_not raise_error
+      expect(doc.default_paragraph_style).to be_nil
+    end
+
+    it 'returns nil for a paragraph font_color when the color tag has no value' do
+      node = Nokogiri::XML(<<~XML).root
+        <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:r><w:rPr><w:color/></w:rPr><w:t>x</w:t></w:r>
+        </w:p>
+      XML
+      paragraph = Docx::Elements::Containers::Paragraph.new(node)
+      expect { paragraph.font_color }.to_not raise_error
+      expect(paragraph.font_color).to be_nil
+    end
+  end
+
   describe 'replacing contents' do
     let(:replacement_file_path) { @fixtures_path + '/replacement.png' }
     let(:temp_file_path) { Tempfile.new(['docx_gem', '.docx']).path }
