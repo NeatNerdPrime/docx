@@ -22,7 +22,7 @@ module Docx
   class Document
     include Docx::SimpleInspect
 
-    attr_reader :xml, :doc, :zip, :styles, :headers
+    attr_reader :xml, :doc, :zip, :styles, :headers, :footers
 
     def initialize(path_or_io, options = {})
       @replace = {}
@@ -41,6 +41,7 @@ module Docx
       @doc = Nokogiri::XML(@document_xml)
       load_styles
       load_headers
+      load_footers
       yield(self) if block_given?
     ensure
       @zip.close unless @zip.nil?
@@ -208,6 +209,15 @@ module Docx
         [simple_file_name, Nokogiri::XML(@zip.read(file))]
       end
       @headers = Hash[filename_and_contents_pairs]
+    end
+
+    def load_footers
+      footer_files = @zip.glob("word/footer*.xml").map{|h| h.name}
+      filename_and_contents_pairs = footer_files.map do |file|
+        simple_file_name = file.sub(/^word\//, "").sub(/\.xml$/, "")
+        [simple_file_name, Nokogiri::XML(@zip.read(file))]
+      end
+      @footers = Hash[filename_and_contents_pairs]
     end
 
     def load_styles
