@@ -22,7 +22,7 @@ module Docx
   class Document
     include Docx::SimpleInspect
 
-    attr_reader :xml, :doc, :zip, :styles
+    attr_reader :xml, :doc, :zip, :styles, :headers
 
     def initialize(path_or_io, options = {})
       @replace = {}
@@ -40,6 +40,7 @@ module Docx
       @document_xml = document.get_input_stream.read
       @doc = Nokogiri::XML(@document_xml)
       load_styles
+      load_headers
       yield(self) if block_given?
     ensure
       @zip.close unless @zip.nil?
@@ -198,6 +199,15 @@ module Docx
       yield
     ensure
       Zip.write_zip64_support = previous
+    end
+
+    def load_headers
+      header_files = @zip.glob("word/header*.xml").map{|h| h.name}
+      filename_and_contents_pairs = header_files.map do |file|
+        simple_file_name = file.sub(/^word\//, "").sub(/\.xml$/, "")
+        [simple_file_name, Nokogiri::XML(@zip.read(file))]
+      end
+      @headers = Hash[filename_and_contents_pairs]
     end
 
     def load_styles
