@@ -44,7 +44,7 @@ module Docx
 
         # Return paragraph as a <p></p> HTML fragment with formatting based on properties.
         def to_html
-          html = ''
+          html = +''
           text_runs.each do |text_run|
             html << text_run.to_html
           end
