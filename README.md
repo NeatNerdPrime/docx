@@ -154,6 +154,15 @@ doc.paragraphs.each do |p|
   end
 end
 
+# Substitute a placeholder even when Word has split it across several runs
+# (e.g. "{{first_name}}" stored as "{{fi", "rst_na", "me}}"). Paragraph#substitute
+# matches across run boundaries, where the per-run TextRun#substitute above cannot.
+# Accepts a String or a Regexp (capture-group backreferences work in the replacement).
+doc.paragraphs.each do |p|
+  p.substitute('{{first_name}}', 'Jane')
+  p.substitute(/\{\{(\w+)\}\}/, 'value of \1')
+end
+
 # Substitute text with access to captures, note block arg is a MatchData, a bit
 # different than String.gsub. https://ruby-doc.org/3.3.7/MatchData.html
 doc.paragraphs.each do |p|

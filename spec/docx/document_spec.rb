@@ -317,6 +317,39 @@ describe Docx::Document do
     end
   end
 
+  # Regression test for #147: a placeholder split across multiple text runs
+  # (as Word often produces) must be replaceable.
+  describe 'substituting a placeholder split across runs' do
+    before do
+      @doc = Docx::Document.open(@fixtures_path + '/split_placeholder.docx')
+      @paragraph = @doc.paragraphs.find { |p| p.text.include?('{{') }
+    end
+
+    it 'has the placeholder split across several runs' do
+      expect(@paragraph.text).to eq('Hello {{first_name}}!')
+      expect(@paragraph.text_runs.map(&:text)).to eq(['Hello ', '{{fi', 'rst_na', 'me}}', '!'])
+    end
+
+    it 'replaces the placeholder via Paragraph#substitute, preserving surrounding text' do
+      @paragraph.substitute('{{first_name}}', 'World')
+      expect(@paragraph.text).to eq('Hello World!')
+    end
+
+    it 'supports regex patterns and capture groups' do
+      @paragraph.substitute(/\{\{(\w+)\}\}/, 'name=\1')
+      expect(@paragraph.text).to eq('Hello name=first_name!')
+    end
+
+    it 'persists the substitution after save' do
+      @paragraph.substitute('{{first_name}}', 'World')
+      new_path = @fixtures_path + '/split_placeholder_saved.docx'
+      @doc.save(new_path)
+      reopened = Docx::Document.open(new_path)
+      expect(reopened.paragraphs.find { |p| p.text.include?('Hello') }.text).to eq('Hello World!')
+      File.delete(new_path) if File.exist?(new_path)
+    end
+  end
+
   describe 'read formatting' do
     before do
       @doc = Docx::Document.open(@fixtures_path + '/formatting.docx')

@@ -65,6 +65,59 @@ module Docx
           text_runs.each { |tr| yield(tr) }
         end
 
+        # Substitute text within the paragraph, even when a match spans multiple
+        # text runs (e.g. a "{{placeholder}}" that Word split across several runs,
+        # such as "{{fi", "rst_na", "me}}"). The per-run TextRun#substitute cannot
+        # match those, but this can, because it joins the runs first.
+        #
+        # The matched region is collapsed into the first run it touches, so that
+        # run's formatting is kept while the other spanned runs are emptied; runs
+        # outside the match are left untouched.
+        #
+        # +pattern+ may be a String or a Regexp; +replacement+ follows String#sub
+        # semantics, so capture-group backreferences (e.g. '\1') work with a Regexp.
+        #
+        #   # given a paragraph reading "Hello {{first_name}}!"
+        #   paragraph.substitute('{{first_name}}', 'Jane')   # => "Hello Jane!"
+        #   paragraph.substitute(/\{\{(\w+)\}\}/, 'value of \1')
+        #
+        # See https://github.com/ruby-docx/docx/issues/147
+        def substitute(pattern, replacement)
+          search_from = 0
+          loop do
+            runs = text_runs
+            break if runs.empty?
+
+            offsets = []
+            cursor = 0
+            runs.each do |run|
+              offsets << cursor
+              cursor += run.text.length
+            end
+            full_text = runs.map(&:text).join
+
+            match = full_text.match(pattern, search_from)
+            break unless match
+            break if match.end(0) == match.begin(0) # ignore empty matches
+
+            match_start = match.begin(0)
+            match_end   = match.end(0) # exclusive
+            first = offsets.rindex { |offset| offset <= match_start }
+            last  = offsets.rindex { |offset| offset < match_end }
+
+            combined = runs[first..last].map(&:text).join
+            local_start = match_start - offsets[first]
+            local_end   = match_end - offsets[first]
+            replaced = combined[local_start...local_end].sub(pattern, replacement)
+            runs[first].text = combined[0...local_start] + replaced + combined[local_end..-1]
+            ((first + 1)..last).each { |index| runs[index].text = '' }
+
+            # advance past the inserted replacement so it is not re-matched
+            search_from = match_start + replaced.length
+          end
+          self
+        end
+
         def aligned_left?
           ['left', nil].include?(alignment)
         end
