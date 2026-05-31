@@ -140,7 +140,7 @@ module Docx
 
         def font_color
           color_tag = @node.xpath('w:r//w:rPr//w:color').first
-          color_tag ? color_tag.attributes['val'].value : nil
+          color_tag ? color_tag.attributes['val']&.value : nil
         end
 
         def style

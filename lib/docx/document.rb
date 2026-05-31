@@ -104,7 +104,11 @@ module Docx
     # Hyperlink targets are extracted from the document.xml.rels file
     def hyperlinks
       hyperlink_relationships.each_with_object({}) do |rel, hash|
-        hash[rel.attributes['Id'].value] = rel.attributes['Target'].value
+        id = rel.attributes['Id']
+        target = rel.attributes['Target']
+        next unless id && target
+
+        hash[id.value] = target.value
       end
     end
 
@@ -184,7 +188,7 @@ module Docx
     end
 
     def default_paragraph_style
-      @styles.at_xpath("w:styles/w:style[@w:type='paragraph' and @w:default='1']/w:name/@w:val").value
+      @styles&.at_xpath("w:styles/w:style[@w:type='paragraph' and @w:default='1']/w:name/@w:val")&.value
     end
 
     def style_name_of(style_id)
