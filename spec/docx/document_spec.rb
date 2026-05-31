@@ -72,6 +72,18 @@ describe Docx::Document do
     end
   end
 
+  describe 'read footers' do
+    before do
+      @doc = Docx::Document.open(@fixtures_path + '/multi_doc.docx')
+    end
+
+    it 'can extract footers' do
+      expect(@doc.footers).to_not be_nil
+      expect(@doc.footers.keys).to eq ["footer1"]
+      expect(@doc.footers["footer1"].text).to eq "Hello from the footer."
+    end
+  end
+
   describe 'read tables' do
     before do
       @doc = Docx::Document.open(@fixtures_path + '/tables.docx')
