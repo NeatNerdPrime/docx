@@ -202,6 +202,15 @@ describe Docx::Document do
       expect(@doc.tables[0].columns[1].cells[1].text).to match(/^Directive/)
     end
 
+    # Regression test for #160: rendering html for a cell that contains a
+    # hyperlink must not raise (the cell's paragraphs need document_properties).
+    it 'renders html for cells containing hyperlinks' do
+      cell = @doc.tables[0].rows[1].cells[1]
+      html = nil
+      expect { html = cell.paragraphs.map(&:to_html).join }.to_not raise_error
+      expect(html).to include('<a href="http://google.com/"')
+    end
+
     describe '#paragraphs' do
       it 'should not grabs paragraphs in the tables' do
         expect(@doc.paragraphs.map(&:text)).to_not include("Second table")

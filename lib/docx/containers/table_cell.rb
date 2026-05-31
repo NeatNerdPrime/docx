@@ -12,9 +12,11 @@ module Docx
           'tc'
         end
 
-        def initialize(node)
+        def initialize(node, document_properties = {}, doc = nil)
           @node = node
           @properties_tag = 'tcPr'
+          @document_properties = document_properties
+          @document = doc
         end
 
         # Return text of paragraph's cell
@@ -24,7 +26,7 @@ module Docx
 
         # Array of paragraphs contained within cell
         def paragraphs
-          @node.xpath('w:p').map {|p_node| Containers::Paragraph.new(p_node) }
+          @node.xpath('w:p').map {|p_node| Containers::Paragraph.new(p_node, @document_properties, @document) }
         end
 
         # Iterate over each text run within a paragraph's cell

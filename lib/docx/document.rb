@@ -275,7 +275,7 @@ module Docx
     end
 
     def parse_table_from(t_node)
-      Elements::Containers::Table.new(t_node)
+      Elements::Containers::Table.new(t_node, document_properties, self)
     end
   end
 end
