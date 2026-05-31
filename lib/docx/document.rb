@@ -40,6 +40,7 @@ module Docx
       @document_xml = document.get_input_stream.read
       @doc = Nokogiri::XML(@document_xml)
       load_styles
+      load_rels
       load_headers
       load_footers
       yield(self) if block_given?
@@ -226,18 +227,22 @@ module Docx
     def load_styles
       @styles_xml = @zip.read('word/styles.xml')
       @styles = Nokogiri::XML(@styles_xml)
-      load_rels
     rescue Errno::ENOENT => e
       warn e.message
       nil
     end
 
+    # Loaded independently of styles so that a document without word/styles.xml
+    # still initializes @rels (see #158).
     def load_rels
       rels_entry = @zip.glob('word/_rels/document*.xml.rels').first
       raise Errno::ENOENT unless rels_entry
 
       @rels_xml = rels_entry.get_input_stream.read
       @rels = Nokogiri::XML(@rels_xml)
+    rescue Errno::ENOENT => e
+      warn e.message
+      nil
     end
 
     #--

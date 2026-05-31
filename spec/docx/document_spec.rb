@@ -612,6 +612,20 @@ describe Docx::Document do
     end
   end
 
+  # Regression test for #158: relationships (and therefore hyperlinks) must be
+  # loaded independently of styles, so a document without word/styles.xml does
+  # not leave @rels uninitialized.
+  describe 'reading relationships when styles.xml is missing' do
+    before do
+      @doc = Docx::Document.open(@fixtures_path + '/no_styles_with_hyperlink.docx')
+    end
+
+    it 'still loads hyperlink relationships' do
+      expect { @doc.hyperlinks }.to_not raise_error
+      expect(@doc.hyperlinks).to eq('rId4' => 'http://www.google.com/')
+    end
+  end
+
   describe 'replacing contents' do
     let(:replacement_file_path) { @fixtures_path + '/replacement.png' }
     let(:temp_file_path) { Tempfile.new(['docx_gem', '.docx']).path }
