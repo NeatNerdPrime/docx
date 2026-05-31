@@ -66,10 +66,22 @@ module Docx
         end
 
         # Substitute text within the paragraph, even when a match spans multiple
-        # text runs (e.g. a "{{placeholder}}" that Word split across several runs).
+        # text runs (e.g. a "{{placeholder}}" that Word split across several runs,
+        # such as "{{fi", "rst_na", "me}}"). The per-run TextRun#substitute cannot
+        # match those, but this can, because it joins the runs first.
+        #
         # The matched region is collapsed into the first run it touches, so that
         # run's formatting is kept while the other spanned runs are emptied; runs
-        # outside the match are left untouched. See #147.
+        # outside the match are left untouched.
+        #
+        # +pattern+ may be a String or a Regexp; +replacement+ follows String#sub
+        # semantics, so capture-group backreferences (e.g. '\1') work with a Regexp.
+        #
+        #   # given a paragraph reading "Hello {{first_name}}!"
+        #   paragraph.substitute('{{first_name}}', 'Jane')   # => "Hello Jane!"
+        #   paragraph.substitute(/\{\{(\w+)\}\}/, 'value of \1')
+        #
+        # See https://github.com/ruby-docx/docx/issues/147
         def substitute(pattern, replacement)
           search_from = 0
           loop do
