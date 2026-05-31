@@ -58,6 +58,18 @@ describe Docx::Document do
 
       it_behaves_like 'reading'
     end
+
+    # Regression test for #101: opening with a Pathname (or any path-like object)
+    # should work the same as a String path.
+    context 'using a Pathname' do
+      before do
+        require 'pathname'
+        path = Pathname.new(@fixtures_path + '/basic.docx')
+        @doc = Docx::Document.open(path)
+      end
+
+      it_behaves_like 'reading'
+    end
   end
 
   describe 'read headers' do
