@@ -5,13 +5,13 @@
 [![Coverage Status](https://coveralls.io/repos/github/ruby-docx/docx/badge.svg?branch=master)](https://coveralls.io/github/ruby-docx/docx?branch=master)
 [![Gitter](https://badges.gitter.im/ruby-docx/community.svg)](https://gitter.im/ruby-docx/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-A ruby library/gem for interacting with `.docx` files. currently capabilities include reading paragraphs/bookmarks, inserting text at bookmarks, reading tables/rows/columns/cells and saving the document.
+A ruby library/gem for interacting with `.docx` files. currently capabilities include reading paragraphs/bookmarks, inserting text at bookmarks, reading and writing headers/footers, reading tables/rows/columns/cells and saving the document.
 
 ## Usage
 
 ### Prerequisites
 
-- Ruby 2.6 or later
+- Ruby 2.7 or later
 
 ### Install
 
@@ -61,6 +61,26 @@ require 'docx'
 doc = Docx::Document.open(buffer)
 
 # Everything about reading is the same as shown above
+```
+
+### Reading headers and footers
+
+``` ruby
+require 'docx'
+
+doc = Docx::Document.open('example.docx')
+
+# Headers and footers are returned as hashes keyed by their file name
+# (e.g. "header1", "footer1"), with Nokogiri documents as values.
+doc.headers.each do |name, header|
+  puts name
+  puts header.text
+end
+
+doc.footers.each do |name, footer|
+  puts name
+  puts footer.text
+end
 ```
 
 ### Rendering html
@@ -116,7 +136,11 @@ doc = Docx::Document.open('example.docx')
 doc.bookmarks['example_bookmark'].insert_text_after("Hello world.")
 
 # Insert multiple lines of text at our bookmark
-doc.bookmarks['example_bookmark_2'].insert_multiple_lines_after(['Hello', 'World', 'foo'])
+doc.bookmarks['example_bookmark_2'].insert_multiple_lines(['Hello', 'World', 'foo'])
+
+# Bookmarks placed in headers and footers are included too, and edits to them
+# are saved along with the document.
+doc.bookmarks['header_bookmark'].insert_text_after("Hello from the header.")
 
 # Remove paragraphs
 doc.paragraphs.each do |p|
