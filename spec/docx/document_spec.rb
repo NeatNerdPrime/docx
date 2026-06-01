@@ -153,6 +153,48 @@ describe Docx::Document do
     end
   end
 
+  # Regression test for #111: some generators (e.g. Google Docs) place
+  # w:bookmarkStart/End directly under w:body, outside any w:p. Inserting text at
+  # such a bookmark must land inside a paragraph (otherwise the run is orphaned
+  # and silently lost).
+  describe 'bookmarks placed outside a paragraph (e.g. Google Docs)' do
+    before do
+      @doc = Docx::Document.open(@fixtures_path + '/bookmark_outside_paragraph.docx')
+      @new_path = @fixtures_path + '/bookmark_outside_paragraph_saved.docx'
+    end
+
+    after do
+      File.delete(@new_path) if File.exist?(@new_path)
+    end
+
+    it 'finds the block-level bookmark' do
+      expect(@doc.bookmarks['bookmark_1']).to_not be_nil
+      expect(@doc.paragraphs.map(&:text)).to eq(['bookmark_1'])
+    end
+
+    it 'inserts text after the bookmark into the following paragraph' do
+      @doc.bookmarks['bookmark_1'].insert_text_after('INSERTED ')
+      expect(@doc.paragraphs.map(&:text)).to eq(['INSERTED bookmark_1'])
+    end
+
+    it 'inserts text before the bookmark as a new leading paragraph' do
+      @doc.bookmarks['bookmark_1'].insert_text_before('BEFORE')
+      expect(@doc.paragraphs.map(&:text)).to eq(['BEFORE', 'bookmark_1'])
+    end
+
+    it 'inserts multiple lines at the bookmark' do
+      @doc.bookmarks['bookmark_1'].insert_multiple_lines(['line1', 'line2', 'line3'])
+      expect(@doc.paragraphs.map(&:text)).to eq(['line1', 'line2', 'line3'])
+    end
+
+    it 'persists inserted text after save' do
+      @doc.bookmarks['bookmark_1'].insert_text_after('INSERTED ')
+      @doc.save(@new_path)
+      reopened = Docx::Document.open(@new_path)
+      expect(reopened.paragraphs.map(&:text)).to eq(['INSERTED bookmark_1'])
+    end
+  end
+
   describe 'read tables' do
     before do
       @doc = Docx::Document.open(@fixtures_path + '/tables.docx')
