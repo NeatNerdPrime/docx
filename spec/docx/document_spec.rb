@@ -182,9 +182,9 @@ describe Docx::Document do
       expect(@doc.paragraphs.map(&:text)).to eq(['BEFORE', 'bookmark_1'])
     end
 
-    it 'inserts multiple lines at the bookmark' do
+    it 'inserts multiple lines at the bookmark without destroying the following paragraph' do
       @doc.bookmarks['bookmark_1'].insert_multiple_lines(['line1', 'line2', 'line3'])
-      expect(@doc.paragraphs.map(&:text)).to eq(['line1', 'line2', 'line3'])
+      expect(@doc.paragraphs.map(&:text)).to eq(['line1', 'line2', 'line3', 'bookmark_1'])
     end
 
     it 'persists inserted text after save' do
